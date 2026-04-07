@@ -329,6 +329,7 @@ function getHolidayDotStyle(type: string, accent: string): React.CSSProperties {
 // ── Main component ───────────────────────────────────────────────────────────
 export default function WallCalendar() {
   const today = new Date();
+  const [istNow, setIstNow] = useState<Date>(new Date());
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [direction, setDirection] = useState(1);
   const [rangeStart, setRangeStart] = useState<Date | null>(null);
@@ -349,6 +350,14 @@ export default function WallCalendar() {
   // Adjacent months
   const prevD = new Date(year, month - 1, 1);
   const nextD = new Date(year, month + 1, 1);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setIstNow(new Date());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => { setNotes(loadNotes(year, month)); }, [year, month]);
 
@@ -441,6 +450,20 @@ export default function WallCalendar() {
     : rangeStart ? `Note from ${fmtDate(rangeStart)}…`
     : `General memo for ${MONTH_NAMES[month]}…`;
 
+  const clockTime = istNow.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  const clockDate = `${istNow.toLocaleDateString("en-IN", { weekday: "long", timeZone: "Asia/Kolkata" })}, ${istNow.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  })}`;
+
   // ── Handlers & Actions for polish ─────────────────────────────────────────
   const exportNotes = () => {
     if (notes.length === 0) return;
@@ -511,6 +534,32 @@ export default function WallCalendar() {
         transition={{ duration: 0.45, ease: "easeOut" }}
         whileHover={{ y: -2 }}
       >
+
+        {/* ── Live IST clock ── */}
+        <div
+          className="rounded-t-2xl px-5 pt-3.5 pb-2.5 text-center border border-stone-200/70 border-b-0 paper-texture"
+          style={{
+            background: "linear-gradient(180deg, #f8f5ef 0%, #f2ede4 100%)",
+            boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.7)",
+          }}
+        >
+          <p className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{ color: theme.accent, opacity: 0.9 }}>
+            IST • Asia/Kolkata
+          </p>
+          <p
+            className="mt-1 text-[clamp(1.25rem,3.8vw,1.9rem)] font-bold leading-none tracking-[0.06em] tabular-nums text-stone-700"
+            style={{ fontFamily: "ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace" }}
+          >
+            {clockTime}
+          </p>
+          <p
+            className="mt-1 text-[clamp(0.72rem,2vw,0.9rem)] font-medium"
+            style={{ color: theme.accent, opacity: 0.82 }}
+          >
+            {clockDate}
+          </p>
+          <div className="mt-2 h-px w-full" style={{ background: theme.gradient, opacity: 0.5 }} />
+        </div>
 
         {/* ── Spiral binding ── */}
         <div className="relative flex items-center justify-center bg-linear-to-b from-zinc-400 to-zinc-300 rounded-t-2xl px-6 py-2.5 overflow-hidden">
