@@ -24,16 +24,21 @@ The goal of this project is visual polish first: it should feel like an interact
 ## Main Features
 
 - Month navigation with animated transitions
+- Swipe gesture support for month navigation (left/right on touch devices)
 - Hover month previews on navigation arrows
 - Date range selection with in-range highlighting
 - Holiday markers with tooltip labels
+- Live IST clock with real-time updates in the calendar header
 - Per-month note capture and delete
+- Side-panel `Notes / Events` view toggle
+- Chronological event timeline for notes in the selected month
 - Export notes to plain text
 - Keyboard shortcuts:
-	- Left Arrow: previous month
-	- Right Arrow: next month
-	- T: jump to current month
+  - Left Arrow: previous month
+  - Right Arrow: next month
+  - T: jump to current month
 - Responsive layout across mobile, tablet, and desktop
+- Mobile-safe mini calendar previews (tooltip sizing/positioning adjusted to avoid clipping)
 
 ## Tech Stack
 
@@ -107,6 +112,21 @@ npm run start
 
 4. Change note persistence key strategy
 - Update `notesKey()` and related helpers in `src/components/WallCalendar.tsx`.
+
+5. Customize live clock appearance
+- Edit the header clock block styles and `clockTime` / `clockDate` formatting in `src/components/WallCalendar.tsx`.
+
+6. Customize notes/events timeline
+- Update `notesView` rendering and chronological sort helpers (`eventSortTime`, `chronologicalNotes`) in `src/components/WallCalendar.tsx`.
+
+## Recent Updates
+
+- Added swipe gestures for month changes on mobile.
+- Added real-time IST clock in the top calendar header.
+- Added `Notes / Events` switch in the side panel.
+- Added chronological event view for all monthly notes.
+- Improved mini month preview visibility on smaller screens.
+- Refined top section structure so spiral and clock read as one cohesive page header.
 
 ## Known Limitations
 
