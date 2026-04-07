@@ -117,4 +117,3 @@ npm run start
 ## License
 
 This repository currently has no explicit open-source license file.
-Add a LICENSE file if you plan to distribute or open-source it.
