@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight, PenLine, X, Download, Calendar as CalendarIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -163,6 +163,42 @@ function loadNotes(y: number, m: number): Note[] {
 function persistNotes(y: number, m: number, notes: Note[]) {
   if (typeof window !== "undefined")
     localStorage.setItem(notesKey(y, m), JSON.stringify(notes));
+}
+
+function getEventsByDateForMonth(notes: Note[], year: number, month: number): Map<number, Note[]> {
+  const eventsByDate = new Map<number, Note[]>();
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+  monthStart.setHours(0, 0, 0, 0);
+  monthEnd.setHours(0, 0, 0, 0);
+
+  notes.forEach((note) => {
+    if (!note.rangeStart) return;
+
+    const rawStart = new Date(note.rangeStart);
+    const rawEnd = new Date(note.rangeEnd ?? note.rangeStart);
+    if (Number.isNaN(rawStart.getTime()) || Number.isNaN(rawEnd.getTime())) return;
+
+    const start = rawStart <= rawEnd ? rawStart : rawEnd;
+    const end = rawStart <= rawEnd ? rawEnd : rawStart;
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
+    if (end < monthStart || start > monthEnd) return;
+
+    const cursor = new Date(Math.max(start.getTime(), monthStart.getTime()));
+    const last = new Date(Math.min(end.getTime(), monthEnd.getTime()));
+
+    while (cursor <= last) {
+      const day = cursor.getDate();
+      const dayEvents = eventsByDate.get(day) ?? [];
+      dayEvents.push(note);
+      eventsByDate.set(day, dayEvents);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  });
+
+  return eventsByDate;
 }
 
 // ── Ruled notepad CSS ────────────────────────────────────────────────────────
@@ -491,6 +527,8 @@ export default function WallCalendar() {
     if (diff !== 0) return diff;
     return a.createdAt - b.createdAt;
   });
+
+  const eventsByDate = useMemo(() => getEventsByDateForMonth(notes, year, month), [notes, year, month]);
 
   const clockTime = istNow.toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
@@ -882,6 +920,8 @@ export default function WallCalendar() {
                         const showLeft = inRange && !isStart;
                         const showRight = inRange && !isEnd;
                         const holiday = isCurrent ? getHoliday(year, month, day.date) : null;
+                        const dayEvents = isCurrent ? (eventsByDate.get(day.date) ?? []) : [];
+                        const hasEvent = dayEvents.length > 0;
 
                         // Circle style
                         let circleStyle: React.CSSProperties = {};
@@ -946,51 +986,120 @@ export default function WallCalendar() {
                               {day.date}
                             </motion.span>
 
-                            {/* Holiday dot + tooltip */}
-                            {holiday && (
+                            {/* Holiday/Event markers + holiday tooltip */}
+                            {(holiday || hasEvent) && (
                               <>
-                                {/* Dot */}
-                                <div
-                                  className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full z-20 ring-1 ring-white"
-                                  style={getHolidayDotStyle(holiday.type, theme.accent)}
-                                />
+                                {/* Markers */}
+                                <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1">
+                                  {holiday && (
+                                    <div
+                                      className="w-1.5 h-1.5 rounded-full ring-1 ring-white"
+                                      style={getHolidayDotStyle(holiday.type, theme.accent)}
+                                    />
+                                  )}
+                                  {hasEvent && (
+                                    <div
+                                      className="w-1.5 h-1.5 rounded-full ring-1 ring-white"
+                                      style={{ backgroundColor: "#10B981" }}
+                                    />
+                                  )}
+                                </div>
 
                                 {/* Tooltip */}
-                                <div
-                                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5
-                                    opacity-0 group-hover/cell:opacity-100 pointer-events-none
-                                    transition-all duration-150 z-50 scale-95 group-hover/cell:scale-100"
-                                >
+                                {holiday && (
                                   <div
-                                    className="text-white text-[10px] font-semibold
-                                      px-3 py-2 rounded-xl shadow-2xl whitespace-nowrap flex items-center gap-1.5"
-                                    style={{
-                                      background:
-                                        holiday.type === "national"
-                                          ? "linear-gradient(135deg,#DC2626,#EF4444)"
-                                          : `linear-gradient(135deg,${theme.accent},${theme.ring})`,
-                                      boxShadow:
-                                        holiday.type === "national"
-                                          ? "0 8px 24px rgba(220,38,38,0.4)"
-                                          : `0 8px 24px ${theme.accent}50`,
-                                    }}
+                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5
+                                      opacity-0 group-hover/cell:opacity-100 pointer-events-none
+                                      transition-all duration-150 z-50 scale-95 group-hover/cell:scale-100"
                                   >
-                                    <span className="text-[11px]">
-                                      {holiday.type === "national" ? "🇮🇳" : "🕉️"}
-                                    </span>
-                                    {holiday.name}
-                                  </div>
-                                  {/* Arrow */}
-                                  <div className="flex justify-center -mt-1">
                                     <div
-                                      className="w-2 h-2 rotate-45"
+                                      className="text-white text-[10px] font-semibold px-3 py-2 rounded-xl shadow-2xl min-w-40 max-w-64"
                                       style={{
                                         background:
-                                          holiday.type === "national" ? "#EF4444" : theme.accent,
+                                          holiday?.type === "national"
+                                            ? "linear-gradient(135deg,#B91C1C,#EF4444)"
+                                            : `linear-gradient(135deg,${theme.accent},#10B981)`,
+                                        boxShadow: holiday?.type === "national"
+                                          ? "0 8px 24px rgba(220,38,38,0.4)"
+                                          : `0 8px 24px ${theme.accent}50`,
                                       }}
-                                    />
+                                    >
+                                      {holiday && (
+                                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                          <span className="text-[11px]">
+                                            {holiday.type === "national" ? "🇮🇳" : "🕉️"}
+                                          </span>
+                                          {holiday.name}
+                                        </div>
+                                      )}
+
+                                      {hasEvent && (
+                                        <div className={holiday ? "mt-1.5 pt-1.5 border-t border-white/30" : ""}>
+                                          {dayEvents.slice(0, 2).map((eventNote) => (
+                                            <div
+                                              key={eventNote.id}
+                                              className="flex items-start gap-1.5 leading-tight text-[10px]"
+                                            >
+                                              <span className="mt-0.5 inline-block w-1.5 h-1.5 rounded-full bg-white/90 shrink-0" />
+                                              <span className="line-clamp-2">{eventNote.text}</span>
+                                            </div>
+                                          ))}
+                                          {dayEvents.length > 2 && (
+                                            <div className="mt-1 text-[9px] font-bold tracking-wide text-white/90">
+                                              +{dayEvents.length - 2} more event{dayEvents.length - 2 > 1 ? "s" : ""}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-center -mt-1">
+                                      <div
+                                        className="w-2 h-2 rotate-45"
+                                        style={{
+                                          background:
+                                            holiday?.type === "national" ? "#EF4444" : theme.accent,
+                                        }}
+                                      />
+                                    </div>
                                   </div>
-                                </div>
+                                )}
+
+                                {hasEvent && !holiday && (
+                                  <div
+                                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5
+                                      opacity-0 group-hover/cell:opacity-100 pointer-events-none
+                                      transition-all duration-150 z-50 scale-95 group-hover/cell:scale-100"
+                                  >
+                                    <div
+                                      className="text-white text-[10px] font-semibold px-3 py-2 rounded-xl shadow-2xl min-w-40 max-w-64"
+                                      style={{
+                                        background: `linear-gradient(135deg,${theme.accent},#10B981)`,
+                                        boxShadow: `0 8px 24px ${theme.accent}50`,
+                                      }}
+                                    >
+                                      {dayEvents.slice(0, 2).map((eventNote) => (
+                                        <div
+                                          key={eventNote.id}
+                                          className="flex items-start gap-1.5 leading-tight text-[10px]"
+                                        >
+                                          <span className="mt-0.5 inline-block w-1.5 h-1.5 rounded-full bg-white/90 shrink-0" />
+                                          <span className="line-clamp-2">{eventNote.text}</span>
+                                        </div>
+                                      ))}
+                                      {dayEvents.length > 2 && (
+                                        <div className="mt-1 text-[9px] font-bold tracking-wide text-white/90">
+                                          +{dayEvents.length - 2} more event{dayEvents.length - 2 > 1 ? "s" : ""}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex justify-center -mt-1">
+                                      <div
+                                        className="w-2 h-2 rotate-45"
+                                        style={{ background: theme.accent }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
                               </>
                             )}
                           </div>
