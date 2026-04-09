@@ -244,7 +244,7 @@ function MiniMonthGrid({
 
   return (
     <div
-      className="bg-white rounded-2xl p-3 w-48"
+      className="bg-white rounded-2xl p-2.5 sm:p-3 w-36 sm:w-48 max-w-[calc(100vw-2.5rem)]"
       style={{
         boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.1)",
         border: "1px solid rgba(0,0,0,0.06)",
@@ -621,7 +621,7 @@ export default function WallCalendar() {
 
         {/* ── Main card ── */}
         <div
-          className="flex flex-col bg-white overflow-hidden rounded-b-2xl paper-texture print-break-inside-avoid"
+          className="flex flex-col bg-white overflow-visible lg:overflow-hidden rounded-b-2xl paper-texture print-break-inside-avoid"
           style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)" }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
@@ -759,7 +759,7 @@ export default function WallCalendar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 6, scale: 0.92 }}
                         transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-50 pointer-events-none"
+                        className="absolute top-full left-0 sm:left-1/2 sm:-translate-x-1/2 mt-3 z-50 pointer-events-none"
                       >
                         <MiniMonthGrid
                           year={prevD.getFullYear()}
@@ -825,7 +825,7 @@ export default function WallCalendar() {
                         exit={{ opacity: 0, y: 6, scale: 0.92 }}
                         transition={{ duration: 0.18, ease: "easeOut" }}
                         className="absolute top-full right-0 mt-3 z-50 pointer-events-none"
-                        style={{ right: "-4px" }}
+                        style={{ right: 0 }}
                       >
                         <MiniMonthGrid
                           year={nextD.getFullYear()}
